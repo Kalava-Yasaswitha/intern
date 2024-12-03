@@ -1,0 +1,42 @@
+import praw
+
+reddit = praw.Reddit(
+    client_id='YOUR_CLIENT_ID',
+    client_secret='YOUR_CLIENT_SECRET',
+    user_agent='YOUR_APP_NAME'
+)
+
+subreddit = reddit.subreddit('WallStreetBets')  # Replace with the desired subreddit
+posts = subreddit.top('day', limit=100)  # Top 100 posts of the day
+data = []
+for post in posts:
+    data.append({
+        'title': post.title,
+        'content': post.selftext,
+        'score': post.score,
+        'comments': post.num_comments,
+        'created': post.created_utc
+    })
+import pandas as pd
+
+df = pd.DataFrame(data)
+df.to_csv('reddit_stock_data.csv', index=False)
+import re
+
+def clean_text(text):
+    text = re.sub(r'http\S+', '', text)  # Remove URLs
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)  # Remove special characters
+    return text.strip()
+
+df['cleaned_content'] = df['content'].apply(clean_text)
+df.dropna(subset=['content'], inplace=True)
+import spacy
+
+nlp = spacy.load('en_core_web_sm')
+
+def lemmatize_text(text):
+    doc = nlp(text)
+    return ' '.join([token.lemma_ for token in doc])
+
+df['lemmatized_content'] = df['cleaned_content'].apply(lemmatize_text)
+df.to_csv('processed_reddit_stock_data.csv', index=False)
