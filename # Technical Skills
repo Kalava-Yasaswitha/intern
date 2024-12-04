@@ -1,0 +1,49 @@
+
+import requests
+from bs4 import BeautifulSoup
+
+# Web scraping example: Extracting product reviews
+url = 'https://example.com/product-reviews'
+response = requests.get(url)
+soup = BeautifulSoup(response.content, 'html.parser')
+
+reviews = []
+for review in soup.find_all('div', class_='review-text'):
+    reviews.append(review.get_text(strip=True))
+
+print(f"Extracted {len(reviews)} reviews.")
+import re
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Preprocessing reviews
+def preprocess_text(text):
+    text = re.sub(r'[^\w\s]', '', text)  # Remove punctuation
+    text = text.lower()  # Convert to lowercase
+    tokens = word_tokenize(text)  # Tokenize text
+    tokens = [word for word in tokens if word not in stopwords.words('english')]  # Remove stopwords
+    return ' '.join(tokens)
+
+cleaned_reviews = [preprocess_text(review) for review in reviews]
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+
+# Simulated labeled data
+labels = [1 if i % 2 == 0 else 0 for i in range(len(cleaned_reviews))]  # 1 = Positive, 0 = Negative
+X_train, X_test, y_train, y_test = train_test_split(cleaned_reviews, labels, test_size=0.2, random_state=42)
+
+# Convert text data to feature vectors
+vectorizer = CountVectorizer()
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
+
+# Train a Naive Bayes classifier
+model = MultinomialNB()
+model.fit(X_train_vec, y_train)
+
+# Evaluate the model
+y_pred = model.predict(X_test_vec)
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("Classification Report:\n", classification_report(y_test, y_pred))
